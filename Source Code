@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cookie Clicker</title>
+  <style>
+    :root{
+      --bg: #0f172a;          /* slate-900 */
+      --card: #111827;        /* gray-900 */
+      --muted: #94a3b8;       /* slate-400 */
+      --text: #e5e7eb;        /* gray-200 */
+      --accent: #22d3ee;      /* cyan-400 */
+      --good: #10b981;        /* emerald-500 */
+      --bad: #ef4444;         /* red-500 */
+    }
+    *{ box-sizing:border-box }
+    html, body{ height:100% }
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--text);
+      background: radial-gradient(1200px 800px at 20% 20%, #1f2937 0%, var(--bg) 40%),
+                  radial-gradient(1000px 600px at 80% 0%, #0b3b4b55 0%, transparent 50%),
+                  var(--bg);
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .game{
+      width:min(880px, 100%); background:linear-gradient(180deg, #0b1220, #0a0f1a);
+      border:1px solid #1f2937; border-radius:24px; box-shadow: 0 20px 50px #0008;
+      padding:28px; position:relative; overflow:hidden;
+    }
+    header{ display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:16px }
+    .brand{ display:flex; align-items:center; gap:10px }
+    .logo{ width:38px; height:38px; border-radius:12px; display:grid; place-items:center; background:#111827; border:1px solid #243244 }
+    .logo span{ font-size:20px }
+    h1{ font-size:22px; margin:0; letter-spacing:.3px }
+    .status{ font-size:14px; color:var(--muted) }
+    .status b{ color:var(--text) }
+
+    .stats{ display:flex; gap:16px; flex-wrap:wrap; margin:14px 0 22px }
+    .pill{ background:#0b1220; border:1px solid #1e293b; color:#cbd5e1; padding:10px 14px; border-radius:999px; font-size:14px }
+
+    .board{ display:grid; grid-template-columns: 1.1fr .9fr; gap:22px }
+    @media (max-width: 780px){ .board{ grid-template-columns: 1fr } }
+
+    .card{ background: #0b1220; border:1px solid #1f2937; border-radius:20px; padding:20px; position:relative; min-height:240px }
+
+    .cookieWrap{ display:grid; place-items:center; height:100% }
+    .cookie{
+      width:min(280px, 62vw); aspect-ratio:1/1; border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, #c4a15a, #9c6e2b 60%, #6e4c1d 100%);
+      border: 6px solid #3b2a0f; box-shadow: inset 0 12px 24px #0006, 0 10px 30px #0008;
+      display:grid; place-items:center; cursor:pointer; user-select:none;
+      transition: transform .06s ease, filter .2s ease;
+      position:relative;
+    }
+    .cookie:active{ transform: scale(.96) }
+    .chip{ position:absolute; width:14%; aspect-ratio:1/1; background:#2b1b0a; border-radius:50%; filter: drop-shadow(0 3px 2px #0008) }
+    .chip:nth-child(1){ left:22%; top:28% }
+    .chip:nth-child(2){ left:60%; top:22% }
+    .chip:nth-child(3){ left:38%; top:64% }
+    .chip:nth-child(4){ left:70%; top:58% }
+    .chip:nth-child(5){ left:18%; top:60% }
+
+    .count{ font-size:40px; font-weight:700; letter-spacing:.5px; text-align:center; margin:8px 0 0 }
+    .sub{ text-align:center; color:var(--muted); font-size:13px }
+
+    .actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:16px }
+    .btn{ padding:10px 14px; border-radius:12px; border:1px solid #1e293b; background:#0b1220; color:#e5e7eb; font-weight:600; cursor:pointer }
+    .btn:disabled{ opacity:.5; cursor:not-allowed }
+
+    .shoplist{ display:grid; gap:12px }
+    .shopItem{ display:flex; gap:12px; align-items:center; padding:12px; border-radius:14px; border:1px dashed #243244 }
+    .shopItem h3{ font-size:16px; margin:0 0 2px }
+    .shopItem p{ margin:0; font-size:13px; color:var(--muted) }
+    .price{ margin-left:auto; font-weight:700 }
+
+    .overlay{ position:absolute; inset:0; background:#050a1088; backdrop-filter: blur(4px); display:none; place-items:center; padding:24px }
+    .overlay.show{ display:grid }
+    .modal{ width:min(560px, 96%); border-radius:18px; border:1px solid #243244; background:#0b1220; padding:20px; text-align:center; box-shadow: 0 16px 40px #000a }
+    .modal h2{ margin:0 0 8px; font-size:22px }
+    .modal p{ margin:0 0 8px; color:#cbd5e1 }
+    .badge{ display:inline-block; font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid #1f2937; background:#0d1b26; color:#bae6fd }
+
+    .online{ color:var(--bad) }
+    .offline{ color:var(--good) }
+    .link{ color:var(--accent); text-decoration:none }
+    .tiny{ font-size:12px; color:#94a3b8 }
+  </style>
+</head>
+<body>
+  <div class="game" id="game">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><span>🍪</span></div>
+        <h1>Cookie Clicker</h1>
+      </div>
+      <div class="status" id="status">Checking connection…</div>
+    </header>
+
+    <div class="stats">
+      <div class="pill">Cookies: <b id="countPill">0</b></div>
+      <div class="pill">CPC: <b id="cpc">1</b></div>
+      <div class="pill">Last check: <b id="lastCheck">—</b></div>
+    </div>
+
+    <div class="board">
+      <section class="card">
+        <div class="cookieWrap">
+          <button id="cookie" class="cookie" aria-label="Big cookie" title="Click to bake" type="button">
+            <span style="font-size:38px; transform: translateY(-2px)">🍪</span>
+            <div class="chip"></div><div class="chip"></div><div class="chip"></div><div class="chip"></div><div class="chip"></div>
+          </button>
+        </div>
+        <div class="count" id="count">0</div>
+        <div class="sub">Bake cookies by clicking the cookie. (Only works while <span class="offline">offline</span>.)</div>
+        <div class="actions">
+          <button class="btn" id="saveBtn" type="button">Save</button>
+          <button class="btn" id="resetBtn" type="button">Reset</button>
+        </div>
+      </section>
+
+      <aside class="card">
+        <h3 style="margin-top:0">Upgrades (offline only)</h3>
+        <div class="shoplist">
+          <div class="shopItem">
+            <div>👆</div>
+            <div>
+              <h3>Stronger Clicks</h3>
+              <p>Each purchase adds +1 cookie per click.</p>
+            </div>
+            <div class="price" id="priceLabel">Cost: 50</div>
+            <button class="btn" id="buyBtn" type="button">Buy</button>
+          </div>
+          <p class="tiny">Tip: This mini-game blocks while you're online. It tries to reach multiple servers every 5 seconds. If any check succeeds, play is paused.
+          For privacy, no data leaves your device besides the connectivity check.</p>
+        </div>
+      </aside>
+    </div>
+
+    <div class="overlay" id="overlay" aria-live="polite" aria-atomic="true">
+      <div class="modal">
+        <span class="badge">Connection detected</span>
+        <h2>Go offline to play</h2>
+        <p>We detected an active internet connection. The game is paused until you're offline.</p>
+        <p class="tiny">This page pings Google, Cloudflare, and Microsoft every 5 seconds to decide. Closing Wi‑Fi or unplugging ethernet will resume play automatically.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const PING_URLS = [
+        'https://www.google.com/generate_204',
+        'https://www.cloudflare.com/cdn-cgi/trace',
+        'https://www.msftconnecttest.com/connecttest.txt'
+      ];
+      const CHECK_EVERY_MS = 5000; // 5 seconds
+      const CHECK_TIMEOUT_MS = 3000;
+
+      const el = (id) => document.getElementById(id);
+      const overlay = el('overlay');
+      const statusEl = el('status');
+      const lastCheckEl = el('lastCheck');
+      const countEl = el('count');
+      const countPill = el('countPill');
+      const cookieBtn = el('cookie');
+      const saveBtn = el('saveBtn');
+      const resetBtn = el('resetBtn');
+      const buyBtn = el('buyBtn');
+      const priceLabel = el('priceLabel');
+      const cpcEl = el('cpc');
+
+      const storageKey = 'offline-cookie-clicker-v1';
+      let state = {
+        cookies: 0,
+        cpc: 1,
+        upgradeLevel: 0,
+      };
+
+      // Load saved state
+      try{
+        const raw = localStorage.getItem(storageKey);
+        if(raw){
+          const saved = JSON.parse(raw);
+          Object.assign(state, saved);
+        }
+      }catch(e){ /* ignore */ }
+
+      // UI helpers
+      function render(){
+        countEl.textContent = state.cookies.toLocaleString();
+        countPill.textContent = countEl.textContent;
+        cpcEl.textContent = state.cpc.toString();
+        const cost = upgradeCost();
+        priceLabel.textContent = `Cost: ${cost}`;
+      }
+
+      function save(){
+        try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
+      }
+
+      function reset(){
+        state.cookies = 0; state.cpc = 1; state.upgradeLevel = 0; render(); save();
+      }
+
+      function upgradeCost(){
+        // simple linear cost growth
+        return 50 + state.upgradeLevel * 25;
+      }
+
+      // Online check via fetch to multiple endpoints
+      let online = null; // unknown initially
+      async function checkOnline(){
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), CHECK_TIMEOUT_MS);
+        try{
+          const results = await Promise.allSettled(
+            PING_URLS.map(url => fetch(url, { mode: 'no-cors', cache: 'no-store', signal: ctrl.signal }))
+          );
+          clearTimeout(t);
+          return results.some(r => r.status === 'fulfilled');
+        }catch(e){
+          return false;
+        }
+      }
+
+      function setOnline(isOnline){
+        online = isOnline;
+        const stamp = new Date();
+        lastCheckEl.textContent = stamp.toLocaleTimeString();
+        statusEl.innerHTML = isOnline
+          ? `<span class="online">Online</span> — go offline to play`
+          : `<span class="offline">Offline</span> — you can play`;
+        overlay.classList.toggle('show', !!isOnline);
+        cookieBtn.disabled = !!isOnline;
+        buyBtn.disabled = !!isOnline;
+      }
+
+      // Repeating checker
+      async function scheduleChecks(){
+        setOnline(await checkOnline());
+        setInterval(async () => {
+          const result = await checkOnline();
+          setOnline(result);
+        }, CHECK_EVERY_MS);
+      }
+
+      // Interactions
+      cookieBtn.addEventListener('click', () => {
+        if(online){
+          overlay.classList.add('show');
+          return;
+        }
+        state.cookies += state.cpc;
+        render();
+      });
+
+      buyBtn.addEventListener('click', () => {
+        if(online) return;
+        const cost = upgradeCost();
+        if(state.cookies >= cost){
+          state.cookies -= cost;
+          state.upgradeLevel += 1;
+          state.cpc += 1;
+          render();
+        }
+      });
+
+      saveBtn.addEventListener('click', save);
+      resetBtn.addEventListener('click', reset);
+
+      // Keyboard support: Space/Enter to click
+      document.addEventListener('keydown', (e) => {
+        if(e.code === 'Space' || e.code === 'Enter'){
+          e.preventDefault();
+          cookieBtn.click();
+        }
+      });
+
+      // React to native online/offline events immediately
+      window.addEventListener('online',  () => setOnline(true));
+      window.addEventListener('offline', () => setOnline(false));
+
+      // Init
+      render();
+      scheduleChecks();
+    })();
+  </script>
+</body>
+</html>
